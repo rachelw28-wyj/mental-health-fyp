@@ -1,20 +1,29 @@
+import os
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
 
-# 1. Define database URL for XAMPP (root user, no password)
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:@localhost:3306/mental_health_db"
+# Load the hidden variables from the .env file
+load_dotenv()
 
-# 2. Create the SQLAlchemy engine (the bridge to MySQL)
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+# Grab the Cloud Database URL
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
-# 3. Create a SessionLocal class for database conversations
+if not SQLALCHEMY_DATABASE_URL:
+    print("WARNING: DATABASE_URL not found in .env file!")
+
+# Create the engine. The connect_args={"ssl": {}} tells Python to use 
+# an encrypted connection, which Aiven strictly requires.
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"ssl": {}}
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 4. Create a Base class for the data models
 Base = declarative_base()
 
-# 5. Dependency function to safely open/close database sessions
+# Dependency to inject the database session
 def get_db():
     db = SessionLocal()
     try:

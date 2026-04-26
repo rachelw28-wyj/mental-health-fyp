@@ -2,9 +2,9 @@ import nlp_utils
 import nltk
 from sqlalchemy import text
 from nltk.sentiment import SentimentIntensityAnalyzer
-# Download the emotional dictionary behind the scenes
 nltk.download('vader_lexicon', quiet=True)
-# Initialize the VADER engine
+nltk.download('punkt', quiet=True)
+nltk.download('punkt_tab', quiet=True)
 sia = SentimentIntensityAnalyzer()
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session

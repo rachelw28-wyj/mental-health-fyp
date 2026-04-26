@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Tracker - AI Therapy Assistant</title>
+    <link rel="stylesheet" href="/static/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .dashboard-container { padding: 20px; max-width: 800px; margin: 0 auto; }
+        
+        /* Auto-Analyze Card Styling */
+        .ai-card { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding: 25px; border-radius: 12px; border: 1px solid #bfdbfe; margin-bottom: 30px; text-align: center; }
+        .ai-card h3 { color: #1e3a8a; margin-top: 0; }
+        .ai-card p { color: #3b82f6; font-size: 14px; margin-bottom: 20px; }
+        .analyze-btn { background: #2563eb; color: white; border: none; padding: 14px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; transition: 0.2s; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2); }
+        .analyze-btn:hover { background: #1d4ed8; transform: translateY(-1px); }
+        
+        .chart-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .history-card { background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #2563eb; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .history-card small { color: #64748b; font-size: 12px; }
+    </style>
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <button class="new-chat-btn" onclick="window.location.href='/'">
+                <span class="icon">←</span> Back to Chat
+            </button>
+            <div class="sidebar-nav">
+                <p style="padding: 10px; font-size: 12px; color: #888;">YOUR TRACKER</p>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="chat-header">
+                <h1>Mood Dashboard</h1>
+                <p>AI-powered emotional trend analysis</p>
+            </header>
+
+            <div class="dashboard-container" style="overflow-y: auto; height: calc(100vh - 80px);">
+                
+                <div class="chart-container">
+                    <canvas id="moodChart" height="100"></canvas>
+                </div>
+
+                <div class="ai-card">
+                    <h3>Analyze Today's Chat</h3>
+                    <p>Click below to have the AI analyze your conversations today and automatically map your emotional baseline to the graph.</p>
+                    <button class="analyze-btn" id="analyze-btn" onclick="analyzeChat()">Generate Mood Log</button>
+                    <p id="status-msg" style="text-align: center; font-size: 14px; margin-top: 15px; color: #10b981; display: none; font-weight: bold;"></p>
+                </div>
+
+                <h3>Past Entries</h3>
+                <div id="mood-history-container">
+                    <p style="color: #888; font-size: 14px;">Loading your history...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let moodChartInstance = null;
+
+        window.onload = () => {
+            loadMoodHistory();
+        };
+
+        async function analyzeChat() {
+            const userId = localStorage.getItem("user_id");
+            if (!userId) {
+                alert("Please log in to track your mood.");
+                window.location.href = "/login";
+                return;
+            }
+
+            const btn = document.getElementById("analyze-btn");
+            const msg = document.getElementById("status-msg");
+            
+            btn.innerText = "Analyzing Conversation...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`/mood/auto-analyze/${userId}`, { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    msg.style.color = "#10b981";
+                    msg.innerText = `Success! Detected Emotion: ${data.emotion} (Rating: ${data.rating}/5)`;
+                    msg.style.display = "block";
+                    
+                    // Refresh the graph
+                    loadMoodHistory(); 
+                } else {
+                    msg.style.color = "#ef4444";
+                    msg.innerText = data.detail || "Failed to analyze chat.";
+                    msg.style.display = "block";
+                }
+            } catch (error) {
+                console.error("Error analyzing mood:", error);
+                msg.style.color = "#ef4444";
+                msg.innerText = "Server connection error.";
+                msg.style.display = "block";
+            } finally {
+                btn.innerText = "Generate Mood Log";
+                btn.disabled = false;
+                setTimeout(() => msg.style.display = "none", 5000);
+            }
+        }
+
+        async function loadMoodHistory() {
+            const userId = localStorage.getItem("user_id");
+            const container = document.getElementById("mood-history-container");
+            
+            if (!userId) return;
+
+            try {
+                const response = await fetch(`/mood/${userId}`);
+                let data = await response.json();
+
+                if (data.length === 0) {
+                    container.innerHTML = "<p style='color: #888; font-size: 14px;'>No moods logged yet. Chat with the bot and click Analyze!</p>";
+                    return;
+                }
+
+                container.innerHTML = "";
+                data.forEach(log => {
+                    const card = document.createElement("div");
+                    card.className = "history-card";
+                    card.innerHTML = `
+                        <strong>Rating: ${log.mood_rating}/5 | ${log.primary_emotion}</strong>
+                        <br>
+                        <span style="font-size: 14px; color: #333;">${log.note || "<em>No note provided</em>"}</span>
+                        <br>
+                        <small>${log.log_date}</small>
+                    `;
+                    container.appendChild(card);
+                });
+
+                // Sort chronologically (left to right) using log_id
+                const graphData = [...data].sort((a, b) => a.log_id - b.log_id);
+                const labels = graphData.map(log => log.log_date);
+                const ratings = graphData.map(log => log.mood_rating);
+                
+                renderChart(labels, ratings);
+
+            } catch (error) {
+                container.innerHTML = "<p style='color: red;'>Error loading history.</p>";
+            }
+        }
+
+        function renderChart(labels, dataPoints) {
+            const ctx = document.getElementById('moodChart').getContext('2d');
+            if (moodChartInstance) {
+                moodChartInstance.destroy();
+            }
+
+            moodChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Mood Trend',
+                        data: dataPoints,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#2563eb',
+                        pointRadius: 5,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { min: 1, max: 5, ticks: { stepSize: 1 } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

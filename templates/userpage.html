@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Therapist Portal - Patient Overview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            margin: 0%;
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR (Consistent with therapist_index) --- */
+        /* Sidebar Styling */
+        .sidebar {
+            width: 260px;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .sidebar-header h2 {
+            margin: 0;
+            color: #2563eb;
+            font-size: 20px;
+        }
+
+        .sidebar-nav {
+            padding: 20px 12px;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            color: #475569;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            background: #f8fafc;
+            color: #2563eb;
+        }
+
+        .nav-item span {
+            font-size: 18px;
+        }
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+
+        .logout-btn {
+            width: 100%;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #fef2f2;
+        }
+
+         /* Main Content */
+        .main-content {
+            flex-grow: 1;
+            /* padding: 40px; */
+            overflow-y: auto;
+        }
+
+        .second-content {
+            flex-grow: 1;
+            /* padding: 40px; */
+            overflow-y: auto;
+            padding-left: 30px;
+            padding-right: 30px;
+        }
+
+        .header-section { 
+            background: #2563eb;
+            color: white;
+            padding: 4px;
+            text-align: center;            
+            margin-bottom: 30px;
+        }
+
+        /* --- DASHBOARD CARDS --- */
+        .info-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .crisis-card {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .crisis-card h3 {
+            color: #dc2626;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .crisis-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #ef4444;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .white-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 24px;
+        }
+
+        .journal-card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #10b981;
+            margin-bottom: 12px;
+        }
+
+        /* Patient Grid */
+        .patient-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .patient-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        }
+
+        .patient-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-color: #93c5fd;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            background: #eff6ff;
+            color: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div>
+            <div class="sidebar-header">
+                <h2>Clinical Portal</h2>
+            </div>
+            <div class="sidebar-nav">
+                <div class="nav-item active" onclick="window.location.href='/therapist_index'">
+                    <span>📊</span> Dashboard Overview
+                </div>
+    
+                <div class="nav-item" onclick="window.location.href='/chat'">
+                    <span>💬</span> AI Therapy Chat
+                </div>
+            </div>
+    
+        </div>
+        <div class="sidebar-footer">
+            <div style="margin-bottom: 15px;">
+                <strong id="therapist-name" style="color: #334155;">Dr. Therapist</strong>
+                <div style="font-size: 12px; color: #64748b;">Licensed Professional</div>
+            </div>
+            <button class="logout-btn" onclick="logout()">Log Out</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="header-section">
+            <h1 id="page-title">Patient Overview</h1>
+            <p id="page-subtitle">Select a patient from the directory to view their clinical report.</p>
+        </div>
+        
+        <div class="second-content">
+
+            <div id="dashboard-content" style="display: none;">
+                <div class="info-card">
+                    <div>
+                        <h2 id="p-name" style="margin: 0 0 5px 0;">Patient Name</h2>
+                        <span id="p-email" style="color: #878b64;">email@example.com</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 12px; color: #94a3b8;">Joined System</span><br>
+                        <strong id="p-joined">YYYY-MM-DD</strong>
+                    </div>
+                </div>
+
+                <div id="crisis-section" style="display: none;">
+                    <div class="crisis-card">
+                        <h3>⚠️ High-Risk Crisis Events Detected</h3>
+                        <div id="crisis-list"></div>
+                    </div>
+                </div>
+
+                <div class="white-card">
+                    <h3 style="margin-top: 0;">14-Day Mood Trend</h3>
+                    <canvas id="therapistMoodChart" height="80"></canvas>
+                </div>
+
+                <div class="white-card">
+                    <h3 style="margin-top: 0; margin-bottom: 15px;">Recent Journal Entries</h3>
+                    <div id="journal-list"></div>
+                    <button id="view-history-btn"
+                        style="width: 100%; padding: 12px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 20px;">
+                        View Full Patient History →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+       
+    </main>
+
+    <script>
+
+        window.addEventListener('DOMContentLoaded', () => {
+                const role = localStorage.getItem("role");
+                const username = localStorage.getItem("username");
+
+                if (!role) {
+                    window.location.href = "/login";
+                    return;
+                }
+
+                if (role !== "Professional") {
+                    alert("Unauthorized access. This area is for mental health professionals only.");
+                    window.location.href = "/";
+                    return;
+                }
+
+                // Set Therapist Name
+                if (username) {
+                    document.getElementById("therapist-name").innerText = `Dr. ${username}`;
+                    document.getElementById("welcome-message").innerText = `Welcome Back, Dr. ${username}`;
+                }
+
+                loadPatients();
+            });
+        let moodChartInstance = null;
+
+        window.onload = () => {
+            const role = localStorage.getItem("role");
+
+            if (role !== "Professional") {
+                window.location.href = "/";
+                return;
+            }
+
+            // Get patient_id from URL
+            const params = new URLSearchParams(window.location.search);
+            const patientId = params.get("patient_id");
+
+            if (!patientId) {
+                alert("No patient selected.");
+                window.location.href = "/therapist_index";
+                return;
+            }
+
+            loadPatientReport(patientId);
+        };
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = "/login";
+        }
+
+        async function loadPatientReport(userId) {
+            document.getElementById("dashboard-content").style.display = "block";
+
+            try {
+                const response = await fetch(`/therapist/patient/${userId}/report`);
+                const data = await response.json();
+
+                // Patient Info
+                document.getElementById("p-name").innerText = data.patient_info.username;
+                document.getElementById("p-email").innerText = data.patient_info.email;
+                document.getElementById("p-joined").innerText =
+                    new Date(data.patient_info.joined).toLocaleDateString();
+
+                // Update header
+                document.getElementById("page-title").innerText =
+                    `${data.patient_info.username}'s Clinical Report`;
+
+                document.getElementById("page-subtitle").innerText =
+                    "Detailed AI insights, mood tracking, and journal records.";
+
+                const crisisSection = document.getElementById("crisis-section");
+                const crisisList = document.getElementById("crisis-list");
+                if (data.crisis_events.length > 0) {
+                    crisisSection.style.display = "block";
+                    crisisList.innerHTML = "";
+                    data.crisis_events.forEach(event => {
+                        crisisList.innerHTML += `
+                            <div class="crisis-item">
+                                <strong>Date:</strong> ${new Date(event.timestamp).toLocaleString()} <br>
+                                <strong>Trigger Word:</strong> "${event.trigger_word}" <br>
+                                <strong>Action Taken:</strong> ${event.action_taken}
+                            </div>
+                        `;
+                    });
+                } else {
+                    crisisSection.style.display = "none";
+                }
+
+                // Mood Chart
+                const graphData = [...data.recent_moods].reverse();
+                renderChart(
+                    graphData.map(l => l.log_date),
+                    graphData.map(l => l.mood_rating)
+                );
+
+                const journalList = document.getElementById("journal-list");
+                journalList.innerHTML = "";
+                if (data.recent_journals.length === 0) {
+                    journalList.innerHTML = "<p style='color: #64748b;'>No recent journal entries.</p>";
+                } else {
+                    data.recent_journals.forEach(entry => {
+                        journalList.innerHTML += `
+                            <div class="journal-card">
+                                <strong style="color: #0f172a; font-size: 16px;">${entry.title}</strong>
+                                <span class="journal-date">${new Date(entry.created_at).toLocaleString()}</span>
+                                <p style="color: #334155; font-size: 14px; margin: 0; white-space: pre-wrap;">${entry.content}</p>
+                            </div>
+                        `;
+                    });
+                }
+
+                // View history button
+                document.getElementById("view-history-btn").onclick = () => {
+                    window.location.href = `/history?patient_id=${userId}`;
+                };
+
+            } catch (error) {
+                console.error("Error loading patient report:", error);
+            }
+        }
+
+        function renderChart(labels, dataPoints) {
+            const ctx = document.getElementById('therapistMoodChart').getContext('2d');
+
+            if (moodChartInstance) moodChartInstance.destroy();
+
+            moodChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Mood',
+                        data: dataPoints,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { min: 1, max: 5 }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

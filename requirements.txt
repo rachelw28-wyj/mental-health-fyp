@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+cryptography
+passlib[bcrypt]
+bcrypt==3.2.2
+textblob
+nltk
+anyio
+pydantic
+pydantic-settings
+python-multipart
+google-generativeai
+python-dotenv

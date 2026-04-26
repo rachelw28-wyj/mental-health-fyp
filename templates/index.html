@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Therapy Assistant</title>
+    <link rel="stylesheet" href="static/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- CRISIS MODAL STYLES --- */
+        .crisis-modal {
+            display: none;
+            /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .crisis-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 400px;
+            text-align: center;
+            border-top: 6px solid #dc2626;
+            /* Bright Red */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .crisis-content h2 {
+            color: #dc2626;
+            margin-top: 0;
+        }
+
+        .crisis-content ul {
+            list-style: none;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+            background: #fee2e2;
+            border-radius: 8px;
+        }
+
+        .crisis-content li {
+            margin-bottom: 10px;
+            color: #991b1b;
+            font-size: 15px;
+        }
+
+        .crisis-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: 0.2s;
+        }
+
+        .crisis-btn:hover {
+            background: #b91c1c;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+
+            background-color: #3b82f6;
+
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+            z-index: 1000;
+
+
+            transform: translate(-50%, -150%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toast.show {
+
+            transform: translate(-50%, 0);
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="toast" class="toast">
+        <svg class="toast-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        <span id="toast-message">Logged out successfully.</span>
+    </div>
+    <div id="crisis-modal" class="crisis-modal">
+        <div class="crisis-content">
+            <h2>⚠️ Safety Alert</h2>
+            <p style="color: #334155;">It sounds like you are going through a very difficult time right now. You are not
+                alone.</p>
+            <p style="color: #334155; margin-bottom: 5px;"><strong>Please reach out for immediate support:</strong></p>
+            <ul>
+                <li>📞 <strong>Talian HEAL:</strong> 15555</li>
+                <li>📞 <strong>Befrienders Malaysia:</strong> 03-76272929</li>
+            </ul>
+            <button class="crisis-btn" onclick="document.getElementById('crisis-modal').style.display='none'">
+                I understand
+            </button>
+        </div>
+    </div>
+
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-top">
+                <button class="new-chat-btn" onclick="startNewChat()">
+                    <span class="icon">+</span> New chat
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-item" onclick="window.location.href='/history'">
+                    <span class="icon"></span> View history
+                </div>
+
+                <div class="nav-item" onclick="window.location.href='/mood'">
+                    <span class="icon"></span> Mood Tracker
+                </div>
+
+                <div class="nav-item" onclick="window.location.href='/journal_page'">
+                    <span class="icon"></span> Journal
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-section">
+                    <div class="user-info" id="user-display">
+                        <div class="avatar" id="user-avatar">?</div>
+                        <span id="user-name">Guest</span>
+                    </div>
+
+                    <button id="auth-btn" class="auth-toggle-btn" onclick="handleAuthAction()">
+                        Login / Register
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="chat-header">
+                <h1>AI Therapy Assistant</h1>
+                <p>For Mental Health Professionals • Malaysia</p>
+            </header>
+
+            <div id="chat-box" class="chat-box">
+                <div class="welcome-screen" id="welcome-screen">
+                    <h2>What's on your mind today?</h2>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <input type="text" id="message-input" placeholder="Ask anything..." autocomplete="off">
+                    <button id="send-btn" onclick="sendMessage()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+                <div id="loading" class="loading">Thinking...</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const loadingIndicator = document.getElementById('loading');
+
+        loadingIndicator.style.display = 'none';
+
+        // window.onload = () => {
+        //     const storedName = localStorage.getItem('username');
+        //     if (storedName) {
+        //         document.querySelector('.user-info span').innerText = storedName;
+        //         document.querySelector('.avatar').innerText = storedName[0].toUpperCase();
+        //     }
+        // };
+
+        messageInput.addEventListener("keypress", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            toastMessage.innerText = message;
+            toast.classList.add('show');
+        }
+
+        async function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
+
+            appendMessage("User", text);
+            messageInput.value = '';
+
+            loadingIndicator.style.display = 'block';
+
+            try {
+                const currentUserId = localStorage.getItem("user_id");
+
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: parseInt(currentUserId),
+                        message_text: text
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    appendMessage("Bot", data.message_text);
+
+                    // --- NEW CRISIS DETECTION TRIGGER ---
+                    // If the bot's response contains the emergency helplines, trigger the modal!
+                    if (data.message_text.includes("Talian HEAL") || data.message_text.includes("Befrienders")) {
+                        document.getElementById('crisis-modal').style.display = 'flex';
+                    }
+
+                } else {
+                    console.error("Server error:", response.status);
+                    appendMessage("System", "Error: The backend had trouble processing that.");
+                }
+            } catch (error) {
+                console.error("Network error:", error);
+                appendMessage("System", "Error: Cannot connect to the AI server.");
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // --- Session Storage Logic ---
+        let currentSessionChat = JSON.parse(sessionStorage.getItem('active_chat')) || [];
+
+        function restoreActiveChat() {
+            if (currentSessionChat.length > 0) {
+                // Hide the "Draft or rewrite text" welcome screen
+                const welcomeScreen = document.getElementById('welcome-screen');
+                if (welcomeScreen) welcomeScreen.style.display = 'none';
+
+                // Redraw all saved bubbles
+                currentSessionChat.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = msg.sender === 'User' ? 'message user-msg' : 'message bot-msg';
+                    msgDiv.innerText = msg.text;
+                    chatBox.appendChild(msgDiv);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        }
+
+        // // Call the restore function as soon as the page loads
+        // window.addEventListener('DOMContentLoaded', restoreActiveChat);
+
+        function startNewChat() {
+            // Clear the temporary memory and reload the page
+            sessionStorage.removeItem('active_chat');
+            window.location.reload();
+        }
+
+        function appendMessage(sender, text) {
+            // Hide welcome screen when a new message is sent
+            const welcomeScreen = document.getElementById('welcome-screen');
+            if (welcomeScreen) welcomeScreen.style.display = 'none';
+
+            const msgDiv = document.createElement('div');
+            if (sender === "User") {
+                msgDiv.className = 'message user-msg';
+            } else {
+                msgDiv.className = 'message bot-msg';
+            }
+
+            msgDiv.innerText = text;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Save the new bubble to our temporary clipboard
+            currentSessionChat.push({ sender: sender, text: text });
+            sessionStorage.setItem('active_chat', JSON.stringify(currentSessionChat));
+        }
+
+        function updateUIForAuth() {
+            const userId = localStorage.getItem('user_id');
+            const username = localStorage.getItem('username');
+            const authBtn = document.getElementById('auth-btn');
+            const nameDisplay = document.getElementById('user-name');
+            const avatarDisplay = document.getElementById('user-avatar');
+
+            if (userId && username) {
+                nameDisplay.innerText = username;
+                avatarDisplay.innerText = username[0].toUpperCase();
+                authBtn.innerText = "Log Out";
+                authBtn.classList.add('logout');
+            } else {
+                nameDisplay.innerText = "Guest User";
+                avatarDisplay.innerText = "?";
+                authBtn.innerText = "Login / Register";
+                authBtn.classList.remove('logout');
+            }
+        }
+
+        function handleAuthAction() {
+            const userId = localStorage.getItem('user_id');
+
+            if (userId) {
+
+                showToast("Successfully logged out. Take care!");
+
+                setTimeout(() => {
+                    localStorage.clear();
+                    window.location.reload();
+                }, 1500);
+            } else {
+                window.location.href = "/login";
+            }
+        }
+
+        // window.addEventListener('DOMContentLoaded', updateUIForAuth);
+
+        // --- ROUTE GUARD: FORCE LOGIN ---
+        window.addEventListener('DOMContentLoaded', () => {
+            const userId = localStorage.getItem('user_id');
+            const role = localStorage.getItem('role');
+
+            // 1. If no user is logged in, instantly bounce them to the login page
+            if (!userId) {
+                window.location.href = '/login';
+                return;
+            }
+
+            // 2. If a Therapist accidentally navigates to the patient chat, bounce them back to their dashboard
+            if (role === "Professional") {
+                window.location.href = '/therapist_index';
+                return;
+            }
+
+            // 3. Otherwise, load the UI normally for the patient
+            updateUIForAuth();
+            restoreActiveChat(); // Ensure chat bubbles are restored
+        });
+    </script>
+</body>
+
+</html>

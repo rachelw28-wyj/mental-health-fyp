@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Therapist Portal - AI Therapy Assistant</title>
+    <link rel="stylesheet" href="/static/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .dashboard-container { padding: 20px; max-width: 900px; margin: 0 auto; }
+        
+        /* Patient List Sidebar */
+        .patient-btn { width: 100%; text-align: left; background: transparent; border: none; padding: 12px 15px; color: #7288aa; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.1); transition: 0.2s; font-size: 15px; }
+        .patient-btn:hover, .patient-btn.active { background: rgba(255,255,255,0.1); border-left: 4px solid #38bdf8; }
+        
+        /* Dashboard Cards */
+        .info-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .crisis-card { background: #fef2f2; border: 1px solid #fca5a5; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        .crisis-card h3 { color: #dc2626; margin-top: 0; display: flex; align-items: center; gap: 8px; }
+        .crisis-item { background: white; padding: 12px; border-radius: 8px; border-left: 4px solid #ef4444; margin-bottom: 10px; font-size: 14px; }
+        
+        .chart-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        .journal-card { background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .journal-date { font-size: 12px; color: #64748b; margin-bottom: 8px; display: block; }
+    </style>
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-top" style="padding: 20px;">
+                <h3 style="color: #7288aa; margin: 0;">Clinical Portal</h3>
+                <p style="color: #94a3b8; font-size: 12px; margin-top: 5px;">Patient Directory</p>
+            </div>
+            <div id="patient-list" style="overflow-y: auto; height: calc(100vh - 150px);">
+                <p style="color: #888; padding: 15px; font-size: 14px;">Loading patients...</p>
+            </div>
+            <div class="sidebar-footer">
+                <button class="auth-toggle-btn logout" onclick="logout()">Log Out</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="chat-header">
+                <h1>Patient Overview</h1>
+                <p>Select a patient from the directory to view their clinical report.</p>
+            </header>
+
+            <div id="dashboard-content" class="dashboard-container" style="display: none; overflow-y: auto; height: calc(100vh - 80px);">
+                
+                <div class="info-card">
+                    <div>
+                        <h2 id="p-name" style="margin: 0 0 5px 0; color: #1e293b;">Patient Name</h2>
+                        <span id="p-email" style="color: #64748b; font-size: 14px;">email@example.com</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 12px; color: #94a3b8;">Joined System</span><br>
+                        <strong id="p-joined" style="color: #334155;">YYYY-MM-DD</strong>
+                    </div>
+                </div>
+
+                <div id="crisis-section" style="display: none;">
+                    <div class="crisis-card">
+                        <h3>⚠️ High-Risk Crisis Events Detected</h3>
+                        <div id="crisis-list"></div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3 style="margin-top: 0; color: #1e293b;">14-Day Mood Trend</h3>
+                    <canvas id="therapistMoodChart" height="80"></canvas>
+                </div>
+
+                <h3 style="color: #1e293b; margin-bottom: 15px;">Recent Journal Entries</h3>
+                <div id="journal-list"></div>
+
+            </div>
+            
+            <div id="empty-state" style="display: flex; justify-content: center; align-items: center; height: 80%; color: #3b4452;">
+                <p>No patient selected.</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let moodChartInstance = null;
+
+        window.onload = () => {
+            // Security Check
+            const role = localStorage.getItem("role");
+            if (role !== "Professional") {
+                alert("Unauthorized access. Therapists only.");
+                window.location.href = "/";
+                return;
+            }
+            loadPatients();
+        };
+
+        function logout() {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = "/login";
+        }
+
+        // 1. Fetch the list of patients for the sidebar
+        async function loadPatients() {
+            try {
+                const response = await fetch('/therapist/patients');
+                const patients = await response.json();
+                
+                const listDiv = document.getElementById("patient-list");
+                listDiv.innerHTML = "";
+
+                if (patients.length === 0) {
+                    listDiv.innerHTML = "<p style='color: #888; padding: 15px; font-size: 14px;'>No patients found.</p>";
+                    return;
+                }
+
+                patients.forEach(patient => {
+                    const btn = document.createElement("button");
+                    btn.className = "patient-btn";
+                    btn.innerText = `👤 ${patient.username}`;
+                    btn.onclick = () => {
+                        // Highlight active button
+                        document.querySelectorAll('.patient-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        // Load their data
+                        loadPatientReport(patient.user_id);
+                    };
+                    listDiv.appendChild(btn);
+                });
+            } catch (error) {
+                console.error("Error loading patients", error);
+            }
+        }
+
+        // 2. Fetch the specific patient's report
+        async function loadPatientReport(userId) {
+            document.getElementById("empty-state").style.display = "none";
+            document.getElementById("dashboard-content").style.display = "block";
+
+            try {
+                const response = await fetch(`/therapist/patient/${userId}/report`);
+                const data = await response.json();
+
+                // Populate Info
+                document.getElementById("p-name").innerText = data.patient_info.username;
+                document.getElementById("p-email").innerText = data.patient_info.email;
+                document.getElementById("p-joined").innerText = new Date(data.patient_info.joined).toLocaleDateString();
+
+                // Populate Crisis Alerts
+                const crisisSection = document.getElementById("crisis-section");
+                const crisisList = document.getElementById("crisis-list");
+                if (data.crisis_events.length > 0) {
+                    crisisSection.style.display = "block";
+                    crisisList.innerHTML = "";
+                    data.crisis_events.forEach(event => {
+                        crisisList.innerHTML += `
+                            <div class="crisis-item">
+                                <strong>Date:</strong> ${new Date(event.timestamp).toLocaleString()} <br>
+                                <strong>Trigger Word:</strong> "${event.trigger_word}" <br>
+                                <strong>Action Taken:</strong> ${event.action_taken}
+                            </div>
+                        `;
+                    });
+                } else {
+                    crisisSection.style.display = "none";
+                }
+
+                // Populate Mood Chart (Reverse it so oldest is on the left)
+                const graphData = [...data.recent_moods].reverse();
+                const labels = graphData.map(log => log.log_date);
+                const ratings = graphData.map(log => log.mood_rating);
+                renderChart(labels, ratings);
+
+                // Populate Journals
+                const journalList = document.getElementById("journal-list");
+                journalList.innerHTML = "";
+                if (data.recent_journals.length === 0) {
+                    journalList.innerHTML = "<p style='color: #64748b;'>No recent journal entries.</p>";
+                } else {
+                    data.recent_journals.forEach(entry => {
+                        journalList.innerHTML += `
+                            <div class="journal-card">
+                                <strong style="color: #0f172a; font-size: 16px;">${entry.title}</strong>
+                                <span class="journal-date">${new Date(entry.created_at).toLocaleString()}</span>
+                                <p style="color: #334155; font-size: 14px; margin: 0; white-space: pre-wrap;">${entry.content}</p>
+                            </div>
+                        `;
+                    });
+                }
+
+            } catch (error) {
+                console.error("Error loading report", error);
+            }
+        }
+
+        // 3. Render the Chart
+        function renderChart(labels, dataPoints) {
+            const ctx = document.getElementById('therapistMoodChart').getContext('2d');
+            if (moodChartInstance) moodChartInstance.destroy();
+
+            moodChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Mood Rating',
+                        data: dataPoints,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#2563eb',
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: { y: { min: 1, max: 5, ticks: { stepSize: 1 } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

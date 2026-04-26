@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Portal - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 260px;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .sidebar-header h2 {
+            margin: 0;
+            color: #2563eb;
+            font-size: 20px;
+        }
+
+        .sidebar-nav {
+            padding: 20px 12px;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            color: #475569;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none; /* In case you use <a> tags */
+        }
+
+        .nav-item:hover {
+            background: #f8fafc;
+            color: #2563eb;
+        }
+
+        .nav-item span {
+            font-size: 18px;
+        }
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #fef2f2;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex-grow: 1;
+            /* padding: 40px; */
+            overflow-y: auto;
+        }
+
+        /* .header-section {
+            margin-bottom: 30px;
+        } */
+
+        .header-section { 
+            background: #2563eb;
+            color: white;
+            padding: 4px;
+            text-align: center;            
+            margin-bottom: 30px;
+            /* background: #2563eb;
+            font-size: 28px; */
+        }
+
+        /* .header-section p {
+            background: #2563eb;
+            margin: 0;
+            color: #64748b;
+        } */
+
+        /* Patient Grid */
+        .patient-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        .patient-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        }
+
+        .patient-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-color: #93c5fd;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            background: #eff6ff;
+            color: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .info h3 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            color: #0f172a;
+        }
+
+        .info p {
+            margin: 0;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .card-footer {
+            border-top: 1px solid #f1f5f9;
+            padding-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .view-btn {
+            color: #2563eb;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .alert-badge {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            display: none;
+            /* Hidden by default, shown if crisis */
+        }
+
+        .chat-btn {
+            padding: 10px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            width: 88px; 
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div>
+            <div class="sidebar-header">
+                <h2>Clinical Portal</h2>
+            </div>
+            <div class="sidebar-nav">
+
+                
+                <div class="sidebar-top">
+                    <button class="chat-btn" onclick="startNewChat()">
+                        <span class="icon">+</span> New chat
+                    </button>
+                </div>
+
+                <div class="nav-item active" onclick="window.location.href='/therapist_index'">
+                    <span>📊</span> Dashboard Overview
+                </div>
+            
+                <div class="nav-item" onclick="window.location.href='/chat'">
+                    <span>💬</span> AI Therapy Chat
+                </div>
+
+                <div class="nav-item" onclick="window.location.href='/therapist_history'">
+                    📜 Chat History
+                </div>
+            </div>
+            
+        </div>
+        <div class="sidebar-footer">
+            <div style="margin-bottom: 15px;">
+                <strong id="therapist-name" style="color: #334155;">Dr. Therapist</strong>
+                <div style="font-size: 12px; color: #64748b;">Licensed Professional</div>
+            </div>
+            <button class="logout-btn" onclick="logout()">Log Out</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="header-section">
+            <h1 id="welcome-message">Welcome Back</h1>
+            <p>Select a patient below to review their AI clinical report, mood trends, and journals.</p>
+        </div>
+
+        <div id="patient-grid" class="patient-grid">
+            <div style="color: #64748b;">Loading patients...</div>
+        </div>
+    </main>
+
+    <script>
+        // --- Security Check ---
+        window.addEventListener('DOMContentLoaded', () => {
+            const role = localStorage.getItem("role");
+            const username = localStorage.getItem("username");
+
+            if (!role) {
+                window.location.href = "/login";
+                return;
+            }
+
+            if (role !== "Professional") {
+                alert("Unauthorized access. This area is for mental health professionals only.");
+                window.location.href = "/";
+                return;
+            }
+
+            // Set Therapist Name
+            if (username) {
+                document.getElementById("therapist-name").innerText = `Dr. ${username}`;
+                document.getElementById("welcome-message").innerText = `Welcome Back, Dr. ${username}`;
+            }
+
+            loadPatients();
+        });
+
+        // --- Fetch Patients ---
+        async function loadPatients() {
+            try {
+                // Ensure this fetch endpoint matches your main.py route for getting patients!
+                const response = await fetch('/therapist/patients');
+                const patients = await response.json();
+
+                const gridDiv = document.getElementById("patient-grid");
+                gridDiv.innerHTML = "";
+
+                if (patients.length === 0) {
+                    gridDiv.innerHTML = "<p style='color: #64748b;'>No registered patients found in the system.</p>";
+                    return;
+                }
+
+                patients.forEach(patient => {
+                    // Extract first letter for avatar
+                    const initial = patient.username ? patient.username.charAt(0).toUpperCase() : "?";
+
+                    // You can format the joined date if available
+                    const joinDate = patient.joined ? new Date(patient.joined).toLocaleDateString() : "Active Patient";
+
+                    gridDiv.innerHTML += `
+                        <div class="patient-card" onclick="goToUserPage(${patient.user_id})">
+                            <div class="card-header">
+                                <div class="avatar">${initial}</div>
+                                <div class="info">
+                                    <h3>${patient.username}</h3>
+                                    <p>${patient.email}</p>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <span class="view-btn">View Clinical Report →</span>
+                                <span class="alert-badge" id="alert-${patient.user_id}">Crisis Alert</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error("Error loading patients", error);
+                document.getElementById("patient-grid").innerHTML = "<p style='color: #ef4444;'>Error loading patient directory. Check server connection.</p>";
+            }
+        }
+
+        // --- Navigation ---
+        function goToUserPage(patientId) {
+            // Sends the therapist to the detailed overview page for that specific patient
+            window.location.href = `/userpage?patient_id=${patientId}`;
+        }
+
+        function startNewChat() {
+            // Clear the temporary memory and reload the page
+            sessionStorage.removeItem('therapist_chat');
+            // window.location.reload();
+             window.location.href = "/chat";
+        }
+        
+
+        function logout() {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = "/login";
+        }
+    </script>
+</body>
+
+</html>

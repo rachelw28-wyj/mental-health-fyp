@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat History - AI Therapy Assistant</title>
+    <link rel="stylesheet" href="/static/index.css">
+    <style>
+        /* Styling for the date separator pill */
+        .date-separator {
+            text-align: center;
+            margin: 24px 0 16px 0;
+            position: relative;
+        }
+
+        .date-separator span {
+            background-color: #f1f5f9;
+            color: #64748b;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* --- NEW: Therapist Tools Section Styles --- */
+        .therapist-tools-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.02);
+            z-index: 10;
+        }
+
+        .summarize-btn {
+            width: 100%;
+            padding: 12px;
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .summarize-btn:hover {
+            background: #7c3aed;
+        }
+
+        .summary-box {
+            margin-top: 15px;
+            padding: 20px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            color: #334155;
+            font-size: 14px;
+            line-height: 1.6;
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="history-page">
+    <div class="app-layout">
+        <aside class="sidebar">
+            <button id="dynamic-back-btn" class="new-chat-btn">← Back to Chat</button>
+            <div class="sidebar-nav">
+                <p style="padding: 10px; font-size: 12px; color: #888;">PAST SESSIONS</p>
+            </div>
+        </aside>
+
+        <main class="main-content" style="display: flex; flex-direction: column;">
+            <header class="chat-header">
+                <h1>Full Conversation History</h1>
+                <p>Reviewing previous therapeutic reflections</p>
+            </header>
+
+            <div id="history-container" class="chat-box" style="flex-grow: 1;">
+                <div id="loading-status" style="text-align: center; margin-top: 20px;">Loading history...</div>
+            </div>
+
+            <div id="therapist-tools" class="therapist-tools-container" style="display: none;">
+                <button id="summarize-btn" class="summarize-btn" onclick="generateSummary()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Generate AI Clinical Summary
+                </button>
+                <div id="summary-content" class="summary-box">
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // Global variable to store the ID of the person whose chat we are viewing
+        let targetUserId = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const role = localStorage.getItem("role");
+            const backBtn = document.getElementById("dynamic-back-btn");
+            const therapistTools = document.getElementById("therapist-tools");
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlPatientId = urlParams.get('patient_id');
+
+            if (role === "Professional") {
+                // THERAPIST VIEW
+                backBtn.innerText = "← Back to Overview";
+
+                // --- FIX: Use the URL parameter to load the patient's data, not the therapist's! ---
+                targetUserId = urlPatientId;
+
+                // Show the new AI Summarize tool
+                therapistTools.style.display = "block";
+
+                backBtn.onclick = () => {
+                    if (urlPatientId) {
+                        window.location.href = `/userpage?patient_id=${urlPatientId}`;
+                    } else {
+                        window.location.href = "/therapist_dashboard";
+                    }
+                };
+            } else {
+                // PATIENT VIEW
+                backBtn.innerText = "← Back to Chat";
+
+                // Patients load their own ID from local storage
+                targetUserId = localStorage.getItem("user_id");
+
+                backBtn.onclick = () => {
+                    window.location.href = "/";
+                };
+            }
+
+            // Start loading the history now that we know who to load it for
+            loadHistory();
+        });
+
+        async function loadHistory() {
+            const container = document.getElementById('history-container');
+            const status = document.getElementById('loading-status');
+
+            if (!targetUserId) {
+                alert("Session invalid or no user specified.");
+                window.location.href = "/login";
+                return;
+            }
+
+            try {
+                // Fetch using the safely determined targetUserId
+                const response = await fetch(`/chat/${targetUserId}`);
+                const data = await response.json();
+
+                status.style.display = 'none';
+
+                if (data.length === 0) {
+                    container.innerHTML = "<p style='text-align:center; color: #64748b; margin-top: 20px;'>No history found.</p>";
+                    return;
+                }
+
+                let currentDateString = "";
+
+                data.forEach(msg => {
+                    const msgDateObj = new Date(msg.timestamp);
+                    const formattedDate = msgDateObj.toLocaleDateString('en-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    const formattedTime = msgDateObj.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+
+                    if (formattedDate !== currentDateString) {
+                        const dateDiv = document.createElement('div');
+                        dateDiv.className = 'date-separator';
+                        dateDiv.innerHTML = `<span>${formattedDate}</span>`;
+                        container.appendChild(dateDiv);
+                        currentDateString = formattedDate;
+                    }
+
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = msg.sender === 'User' ? 'message user-msg' : 'message bot-msg';
+                    const timeColor = msg.sender === 'User' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)';
+
+                    msgDiv.innerHTML = `
+                        <div>${msg.message_text}</div>
+                        <small style="display:block; font-size:10px; margin-top:5px; color: ${timeColor};">
+                            ${formattedTime}
+                        </small>
+                    `;
+                    container.appendChild(msgDiv);
+                });
+
+                container.scrollTop = container.scrollHeight;
+
+            } catch (error) {
+                status.innerText = "Error loading history from database.";
+                console.error(error);
+            }
+        }
+
+        // --- NEW: Function to trigger the AI summary ---
+        async function generateSummary() {
+            const btn = document.getElementById("summarize-btn");
+            const summaryBox = document.getElementById("summary-content");
+
+            // Change button to loading state
+            btn.innerHTML = `<svg class="animate-spin" width="20" height="20" fill="none" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Analyzing conversation...`;
+            btn.disabled = true;
+            btn.style.opacity = "0.7";
+
+            summaryBox.style.display = "block";
+            summaryBox.innerHTML = "<p style='color: #64748b;'><em>Reading transcripts and identifying key therapeutic themes...</em></p>";
+
+            try {
+                // NOTE: You will need to create this backend route in your main.py!
+                const response = await fetch(`/chat/${targetUserId}/summary`, {
+                    method: 'GET'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // Display the resulting summary. 
+                    // Assumes your backend returns JSON like: {"summary": "Patient discussed..."}
+                    summaryBox.innerHTML = `
+                        <h4 style="margin-top: 0; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">✨</span> AI Clinical Summary
+                        </h4>
+                        <p style="white-space: pre-wrap; margin-bottom: 0;">${data.summary}</p>
+                    `;
+                } else {
+                    summaryBox.innerHTML = `<p style="color: #dc2626;">Error: Could not generate summary. Check backend connection.</p>`;
+                }
+            } catch (error) {
+                console.error("Summary Generation Error:", error);
+                summaryBox.innerHTML = `<p style="color: #dc2626;">Network error occurred while generating summary.</p>`;
+            } finally {
+                // Reset the button
+                btn.innerHTML = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Generate AI Clinical Summary`;
+                btn.disabled = false;
+                btn.style.opacity = "1";
+            }
+        }
+    </script>
+
+    <style>
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</body>
+
+</html>

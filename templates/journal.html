@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journal - AI Therapy Assistant</title>
+    <link rel="stylesheet" href="/static/index.css">
+    <style>
+        .dashboard-container { padding: 20px; max-width: 800px; margin: 0 auto; }
+        
+        /* Form Styling */
+        .journal-form { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; color: #1e293b; }
+        input[type="text"], textarea { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 15px; box-sizing: border-box; }
+        textarea { resize: vertical; min-height: 120px; }
+        input:focus, textarea:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        .submit-btn { background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 15px; width: 100%; transition: 0.2s; }
+        .submit-btn:hover { background: #1d4ed8; }
+
+        /* History Cards Styling */
+        .entries-grid { display: flex; flex-direction: column; gap: 15px; }
+        .journal-card { background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #10b981; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .journal-card h4 { margin: 0 0 8px 0; color: #0f172a; font-size: 18px; }
+        .journal-date { display: block; color: #64748b; font-size: 12px; margin-bottom: 12px; }
+        .journal-content { color: #334155; font-size: 15px; line-height: 1.6; white-space: pre-wrap; margin: 0; }
+    </style>
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <button class="new-chat-btn" onclick="window.location.href='/'">
+                <span class="icon">←</span> Back to Chat
+            </button>
+            <div class="sidebar-nav">
+                <p style="padding: 10px; font-size: 12px; color: #888;">YOUR TRACKER</p>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="chat-header">
+                <h1>Therapeutic Journal</h1>
+                <p>A safe space to write down your thoughts and reflections.</p>
+            </header>
+
+            <div class="dashboard-container" style="overflow-y: auto; height: calc(100vh - 80px);">
+                
+                <div class="journal-form">
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input type="text" id="journal-title" placeholder="What's on your mind today?">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Entry</label>
+                        <textarea id="journal-content" placeholder="Write your thoughts here..."></textarea>
+                    </div>
+
+                    <button class="submit-btn" onclick="submitJournal()">Save Entry</button>
+                    <p id="status-msg" style="text-align: center; font-size: 14px; margin-top: 15px; color: #10b981; display: none;"></p>
+                </div>
+
+                <h3 style="color: #1e293b; margin-bottom: 15px;">Past Entries</h3>
+                <div id="journal-history-container" class="entries-grid">
+                    <p style="color: #888; font-size: 14px;">Loading your journal entries...</p>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        window.onload = () => {
+            loadJournalHistory();
+        };
+
+        async function submitJournal() {
+            const userId = localStorage.getItem("user_id");
+            if (!userId) {
+                alert("Please log in to use the journal.");
+                window.location.href = "/login";
+                return;
+            }
+
+            const title = document.getElementById("journal-title").value.trim();
+            const content = document.getElementById("journal-content").value.trim();
+
+            if (!content) {
+                alert("Journal entry cannot be empty.");
+                return;
+            }
+
+            const payload = {
+                user_id: parseInt(userId),
+                title: title || "Untitled Entry", // Fallback if they leave it blank
+                content: content
+            };
+
+            try {
+                const response = await fetch('/journal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const msg = document.getElementById("status-msg");
+                    msg.innerText = "Journal entry saved securely!";
+                    msg.style.display = "block";
+                    
+                    // Clear the form
+                    document.getElementById("journal-title").value = ""; 
+                    document.getElementById("journal-content").value = ""; 
+                    
+                    // Reload the entries instantly
+                    loadJournalHistory(); 
+                    
+                    setTimeout(() => msg.style.display = "none", 3000);
+                } else {
+                    alert("Failed to save journal entry.");
+                }
+            } catch (error) {
+                console.error("Error saving journal:", error);
+            }
+        }
+
+        async function loadJournalHistory() {
+            const userId = localStorage.getItem("user_id");
+            const container = document.getElementById("journal-history-container");
+            
+            if (!userId) return;
+
+            try {
+                const response = await fetch(`/journal/${userId}`);
+                const data = await response.json();
+
+                if (data.length === 0) {
+                    container.innerHTML = "<p style='color: #888; font-size: 14px;'>Your journal is empty. Start writing above!</p>";
+                    return;
+                }
+
+                container.innerHTML = ""; 
+                data.forEach(entry => {
+                    const card = document.createElement("div");
+                    card.className = "journal-card";
+                    
+                    // Format the date nicely
+                    const dateObj = new Date(entry.created_at);
+                    const formattedDate = dateObj.toLocaleDateString('en-MY', { 
+                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                    });
+
+                    card.innerHTML = `
+                        <h4>${entry.title}</h4>
+                        <span class="journal-date">${formattedDate}</span>
+                        <p class="journal-content">${entry.content}</p>
+                    `;
+                    container.appendChild(card);
+                });
+
+            } catch (error) {
+                container.innerHTML = "<p style='color: red;'>Error loading journal history.</p>";
+            }
+        }
+    </script>
+</body>
+</html>

@@ -4,7 +4,7 @@ from sqlalchemy.sql import func
 from database import Base
 
 class User(Base):
-    __tablename__ = "User"
+    __tablename__ = "users" # Changed to lowercase plural
 
     user_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     username = Column(String(50), unique=True, nullable=False)
@@ -14,39 +14,39 @@ class User(Base):
     created_at = Column(DateTime, default=func.now())
 
 class ChatHistory(Base):
-    __tablename__ = "Chat_History"
+    __tablename__ = "chat_history" # Lowercase
 
     msg_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("User.user_id", ondelete="CASCADE"))
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE")) # Updated FK
     sender = Column(Enum('User', 'Bot'), nullable=False)
     message_text = Column(Text, nullable=False)
     sentiment_score = Column(Float)
     timestamp = Column(DateTime, default=func.now())
 
 class MoodLog(Base):
-    __tablename__ = "Mood_Logs"
+    __tablename__ = "mood_logs" # Lowercase
 
     log_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("User.user_id", ondelete="CASCADE"))
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE")) # Updated FK
     mood_rating = Column(Integer, nullable=False)
     primary_emotion = Column(String(50), nullable=False)
     note = Column(Text)
     log_date = Column(Date, nullable=False)
 
 class JournalEntry(Base):
-    __tablename__ = "Journal_Entries"
+    __tablename__ = "journal_entries" # Lowercase
 
     journal_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("User.user_id", ondelete="CASCADE"))
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE")) # Updated FK
     title = Column(String(100))
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=func.now())
 
 class CrisisEvent(Base):
-    __tablename__ = "Crisis_Events"
+    __tablename__ = "crisis_events" # Lowercase
 
     event_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("User.user_id", ondelete="CASCADE"))
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE")) # Updated FK
     trigger_word = Column(String(50), nullable=False)
     risk_level = Column(String(20), nullable=False)
     action_taken = Column(String(100), nullable=False)
